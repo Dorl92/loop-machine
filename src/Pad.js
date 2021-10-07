@@ -77,6 +77,6 @@ const Pad = (props) => {
 };
 
 export default withStyles(styles)(memo(Pad, (props, nextProps) => {
-    if (props.mode === nextProps.mode && props.isPlay === nextProps.isPlay) return true;
+    if (props.mode === nextProps.mode) return true;
 }));
 

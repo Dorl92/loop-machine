@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { withStyles } from '@mui/styles';
+// import LogRocket from 'logrocket';
 import Pad from './Pad';
 
 import futureFunk from './loop samples/120_future_funk_beats_25.mp3';
@@ -21,10 +22,11 @@ import guitar from './icons/guitar.svg';
 import note1 from './icons/note1.svg';
 import note2 from './icons/note2.svg';
 import piano from './icons/piano.svg';
-import play from './icons/play.svg'
-import stop from './icons/stop.svg'
-import pause from './icons/pause.svg'
-import record from './icons/recording.svg'
+import play from './icons/play.svg';
+import stop from './icons/stop.svg';
+import pause from './icons/pause.svg';
+import record from './icons/recording.svg';
+import stopRecord from './icons/stop-recording.svg'
 
 
 const SAMPLES = [
@@ -93,9 +95,10 @@ const LoopMachine = (props) => {
 
     const [isPlay, setIsPlay] = useState(false)
     const [addPending, setAddPending] = useState(false)
+    const [isRecording, setIsRecording] = useState(false)
     const [looper, setLooper] = useState(Array(9).fill(Mode.DISABLE))
     const [pending, setPending] = useState([])
-
+    const [playing, setPlaying] = useState([])
 
     useEffect(() => {
         if (isPlay) {
@@ -113,11 +116,12 @@ const LoopMachine = (props) => {
             console.log('handle pending', new Date().getMilliseconds())
             setLooper(prevState => {
                 const updatedLooper = [...prevState]
-                console.log(pending)
-                pending.forEach(i => updatedLooper[i] = Mode.PLAYING)
-                console.log(updatedLooper)
+                pending.forEach(i => {
+                    updatedLooper[i] = Mode.PLAYING;
+                })
                 return updatedLooper;
             })
+            setPlaying(prevState => [...prevState, ...pending])
             setPending([])
         }
     }, [addPending])
@@ -152,14 +156,31 @@ const LoopMachine = (props) => {
     }
     const handlePause = () => {
         setIsPlay(false)
+        setLooper(prevState => {
+            const updatedLooper = [...prevState]
+            playing.forEach(i => {
+                updatedLooper[i] = Mode.PENDING;
+            })
+            return updatedLooper;
+        })
+        setPending(prevState => [...prevState, ...playing])
+        setPlaying([])
     }
     const handleStop = () => {
         setIsPlay(false)
         setLooper(prevState => prevState.map(sample => sample = Mode.DISABLE))
+        setPlaying([])
+        setPending([])
+    }
+    const handleRecord = () => {
+        setIsRecording(true)
+    }
+    const handleStopRecord = () => {
+        setIsRecording(false)
     }
 
     return (
-        <div className={classes.root}>
+        <div id='root' className={classes.root}>
             <div className={classes.title}>
                 <div className='neon'>GROO</div>
                 <div className='flux'>VEO</div>
@@ -172,7 +193,11 @@ const LoopMachine = (props) => {
 
                 }
                 <div className={classes.button} style={{ color: "rgb(170, 12, 12)" }} onClick={handleStop}><img src={stop} alt="stop" /></div>
-                <div className={classes.button} style={{ color: "rgb(64, 166, 184)" }} onClick={handleStop}><img src={record} alt="record" /></div>
+                {isRecording ?
+                    <div className={classes.button} style={{ color: "rgb(170, 12, 12)" }} onClick={handleStopRecord}><img src={stopRecord} alt="stop-record" /></div>
+                    :
+                    <div className={classes.button} style={{ color: "rgb(64, 166, 184)" }} onClick={handleRecord}><img src={record} alt="record" /></div>
+                }
             </div>
             <div className={classes.pads}>
                 {SAMPLES.map((sample, index) => {
