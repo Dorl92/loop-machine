@@ -1,5 +1,5 @@
 import './App.css';
-import LoopMachine from './LoopMachine';
+import LoopMachine from './components/LoopMachine';
 
 function App() {
   return (

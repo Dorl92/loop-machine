@@ -1,33 +1,33 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { withStyles } from '@mui/styles';
-// import LogRocket from 'logrocket';
+import styles from '../styles/LoopMachineStyles';
 import Pad from './Pad';
+import ControlButton from './ControlButton';
 
-import futureFunk from './loop samples/120_future_funk_beats_25.mp3';
-import stutterBreakbeats from './loop samples/120_stutter_breakbeats_16.mp3';
-import BassWarwick from './loop samples/Bass Warwick heavy funk groove on E 120 BPM.mp3';
-import electricGuitar from './loop samples/electric guitar coutry slide 120bpm - B.mp3';
-import StompySlosh from './loop samples/FUD_120_StompySlosh.mp3';
-import GrooveB from './loop samples/GrooveB_120bpm_Tanggu.mp3';
-import MazePolitics from './loop samples/MazePolitics_120_Perc.mp3';
-import PAS3GROOVE from './loop samples/PAS3GROOVE1.03B.mp3';
-import SilentStar from './loop samples/SilentStar_120_Em_OrganSynth.mp3';
+import futureFunk from '../loop_samples/120_future_funk_beats_25.mp3';
+import stutterBreakbeats from '../loop_samples/120_stutter_breakbeats_16.mp3';
+import BassWarwick from '../loop_samples/Bass Warwick heavy funk groove on E 120 BPM.mp3';
+import electricGuitar from '../loop_samples/electric guitar coutry slide 120bpm - B.mp3';
+import StompySlosh from '../loop_samples/FUD_120_StompySlosh.mp3';
+import GrooveB from '../loop_samples/GrooveB_120bpm_Tanggu.mp3';
+import MazePolitics from '../loop_samples/MazePolitics_120_Perc.mp3';
+import PAS3GROOVE from '../loop_samples/PAS3GROOVE1.03B.mp3';
+import SilentStar from '../loop_samples/SilentStar_120_Em_OrganSynth.mp3';
 
-import bass from './icons/bass.svg';
-import disc from './icons/disc.svg';
-import drum1 from './icons/drum1.svg';
-import drum2 from './icons/drum2.svg';
-import drum3 from './icons/drum3.svg';
-import guitar from './icons/guitar.svg';
-import note1 from './icons/note1.svg';
-import note2 from './icons/note2.svg';
-import piano from './icons/piano.svg';
-import play from './icons/play.svg';
-import stop from './icons/stop.svg';
-import pause from './icons/pause.svg';
-import record from './icons/recording.svg';
-import stopRecord from './icons/stop-recording.svg'
-
+import bass from '../icons/bass.svg';
+import disc from '../icons/disc.svg';
+import drum1 from '../icons/drum1.svg';
+import drum2 from '../icons/drum2.svg';
+import drum3 from '../icons/drum3.svg';
+import guitar from '../icons/guitar.svg';
+import note1 from '../icons/note1.svg';
+import note2 from '../icons/note2.svg';
+import piano from '../icons/piano.svg';
+import play from '../icons/play.svg';
+import stop from '../icons/stop.svg';
+import pause from '../icons/pause.svg';
+import record from '../icons/recording.svg';
+import stopRecord from '../icons/stop-recording.svg'
 
 const SAMPLES = [
     { url: futureFunk, icon: note2 },
@@ -47,48 +47,11 @@ export const Mode = {
     PLAYING: 'playing'
 }
 
-const styles = {
-    root: {
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center"
-    },
-    title: {
-        display: "flex",
-        margin: "2rem"
-    },
-    buttons: {
-        display: "flex",
-        margin: "1rem 0 2rem 0"
-    },
-    button: {
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        padding: "0.5rem",
-        height: "30px",
-        width: "fit-content",
-        margin: "0.5rem",
-        borderRadius: "20px",
-        boxShadow: '0px 0px 10px ',
-        transition: "all 0.1s ease-in",
-        "&:hover": {
-            cursor: "pointer",
-            boxShadow: '0px 0px 18px',
-        },
-        "& img": {
-            height: "25px",
-            width: "40px",
-        }
-    },
-    pads: {
-        width: "fit-content",
-        display: "grid",
-        gridTemplateColumns: "repeat(3, 33.3333%)",
-    }
+export const Action = {
+    PLAY: 'play',
+    PAUSE: 'pause',
+    STOP: 'stop'
 }
-
 
 const LoopMachine = (props) => {
     const { classes } = props;
@@ -99,6 +62,8 @@ const LoopMachine = (props) => {
     const [looper, setLooper] = useState(Array(9).fill(Mode.DISABLE))
     const [pending, setPending] = useState([])
     const [playing, setPlaying] = useState([])
+    const [recordingTimestamp, setRecordingTimestamp] = useState()
+    const [currentSession, setCurrentSession] = useState([])
 
     useEffect(() => {
         if (isPlay) {
@@ -112,8 +77,6 @@ const LoopMachine = (props) => {
     useEffect(() => {
         if (addPending) {
             setAddPending(false)
-            console.log('new loop')
-            console.log('handle pending', new Date().getMilliseconds())
             setLooper(prevState => {
                 const updatedLooper = [...prevState]
                 pending.forEach(i => {
@@ -125,6 +88,10 @@ const LoopMachine = (props) => {
             setPending([])
         }
     }, [addPending])
+
+    const recordActionIfNeeded = (pad, mode, action) => {
+        isRecording && setCurrentSession(prevState => [...prevState, { time: (+(new Date()).getTime() - +(new Date(recordingTimestamp)).getTime()), pad, mode, action }])
+    }
 
     const handlePadClick = useCallback((index) => {
         let mode;
@@ -139,22 +106,26 @@ const LoopMachine = (props) => {
                 break;
             case Mode.PLAYING:
                 mode = Mode.DISABLE;
-                setPending(prevState => prevState.filter(i => i !== index))
+                setPlaying(prevState => prevState.filter(i => i !== index))
                 break;
             default:
         }
+        recordActionIfNeeded(index, mode, null)
         setLooper(prevState => {
             const updatedLooper = [...prevState]
             updatedLooper[index] = mode;
             return updatedLooper;
         })
-    }, [looper])
+    }, [looper, isRecording, recordingTimestamp])
 
     const handlePlay = () => {
         setAddPending(true)
+        recordActionIfNeeded(null, null, Action.PLAY)
         setIsPlay(true)
     }
+
     const handlePause = () => {
+        recordActionIfNeeded(null, null, Action.PAUSE)
         setIsPlay(false)
         setLooper(prevState => {
             const updatedLooper = [...prevState]
@@ -166,18 +137,56 @@ const LoopMachine = (props) => {
         setPending(prevState => [...prevState, ...playing])
         setPlaying([])
     }
+
     const handleStop = () => {
         setIsPlay(false)
+        recordActionIfNeeded(null, null, Action.STOP)
         setLooper(prevState => prevState.map(sample => sample = Mode.DISABLE))
         setPlaying([])
         setPending([])
     }
-    const handleRecord = () => {
+
+    const handleStartRecording = () => {
         setIsRecording(true)
+        setCurrentSession([])
+        setRecordingTimestamp(new Date())
     }
-    const handleStopRecord = () => {
+
+    const handleStopRecording = () => {
+        recordActionIfNeeded(null, null, Action.STOP)
         setIsRecording(false)
     }
+
+    const handlePlaySession = () => {
+        currentSession.forEach(record => {
+            if (record.pad !== null) {
+                setTimeout(() => {
+                    handlePadClick(record.pad)
+                }, record.time)
+            } else {
+                switch (record.action) {
+                    case Action.PLAY:
+                        setTimeout(() => {
+                            handlePlay()
+                        }, record.time)
+                        break;
+                    case Action.PAUSE:
+                        setTimeout(() => {
+                            handlePause()
+                        }, record.time)
+                        break;
+                    case Action.STOP:
+                        setTimeout(() => {
+                            handleStop()
+                        }, record.time)
+                        break;
+                    default:
+                }
+            }
+        })
+    }
+
+    const shouldShowPlaySession = currentSession.length > 0 && !isRecording;
 
     return (
         <div id='root' className={classes.root}>
@@ -187,17 +196,18 @@ const LoopMachine = (props) => {
             </div>
             <div className={classes.buttons}>
                 {isPlay ?
-                    <div className={classes.button} style={{ color: "rgb(201, 164, 42)" }} onClick={handlePause}><img src={pause} alt="pause" /></div>
+                    <ControlButton color='#C9A42A' handleClick={handlePause} icon={pause} />
                     :
-                    <div className={classes.button} style={{ color: "rgb(29, 131, 29)" }} onClick={handlePlay}><img src={play} alt="play" /></div>
-
+                    <ControlButton color='#1D831D' handleClick={handlePlay} icon={play} />
                 }
-                <div className={classes.button} style={{ color: "rgb(170, 12, 12)" }} onClick={handleStop}><img src={stop} alt="stop" /></div>
+                <ControlButton color='#AA0C0C' handleClick={handleStop} icon={stop} />
                 {isRecording ?
-                    <div className={classes.button} style={{ color: "rgb(170, 12, 12)" }} onClick={handleStopRecord}><img src={stopRecord} alt="stop-record" /></div>
+                    <ControlButton color='#EE7614' handleClick={handleStopRecording} icon={stopRecord} />
                     :
-                    <div className={classes.button} style={{ color: "rgb(64, 166, 184)" }} onClick={handleRecord}><img src={record} alt="record" /></div>
+                    <ControlButton color='#40A6B8' handleClick={handleStartRecording} icon={record} />
                 }
+
+                {shouldShowPlaySession &&  <ControlButton color='#EE7614' handleClick={handlePlaySession} text={'Play Session'} />}
             </div>
             <div className={classes.pads}>
                 {SAMPLES.map((sample, index) => {
