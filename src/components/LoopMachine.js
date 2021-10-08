@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { withStyles } from '@mui/styles';
 import styles from '../styles/LoopMachineStyles';
 import Pad from './Pad';
@@ -64,6 +64,10 @@ const LoopMachine = (props) => {
     const [playing, setPlaying] = useState([])
     const [recordingTimestamp, setRecordingTimestamp] = useState()
     const [currentSession, setCurrentSession] = useState([])
+    const [startRecordingState, setStartRecordingState] = useState()
+
+    const looperRef = useRef()
+    looperRef.current = looper;
 
     useEffect(() => {
         if (isPlay) {
@@ -89,13 +93,13 @@ const LoopMachine = (props) => {
         }
     }, [addPending])
 
-    const recordActionIfNeeded = (pad, mode, action) => {
-        isRecording && setCurrentSession(prevState => [...prevState, { time: (+(new Date()).getTime() - +(new Date(recordingTimestamp)).getTime()), pad, mode, action }])
+    const recordActionIfNeeded = (pad, action) => {
+        isRecording && setCurrentSession(prevState => [...prevState, { time: (+(new Date()).getTime() - +(new Date(recordingTimestamp)).getTime()), pad, action }])
     }
 
     const handlePadClick = useCallback((index) => {
         let mode;
-        switch (looper[index]) {
+        switch (looperRef.current[index]) {
             case Mode.DISABLE:
                 mode = Mode.PENDING;
                 setPending(prevState => [...prevState, index])
@@ -110,22 +114,22 @@ const LoopMachine = (props) => {
                 break;
             default:
         }
-        recordActionIfNeeded(index, mode, null)
+        recordActionIfNeeded(index, null)
         setLooper(prevState => {
             const updatedLooper = [...prevState]
             updatedLooper[index] = mode;
             return updatedLooper;
         })
-    }, [looper, isRecording, recordingTimestamp])
+    }, [looper, isRecording])
 
     const handlePlay = () => {
         setAddPending(true)
-        recordActionIfNeeded(null, null, Action.PLAY)
+        recordActionIfNeeded(null, Action.PLAY)
         setIsPlay(true)
     }
 
     const handlePause = () => {
-        recordActionIfNeeded(null, null, Action.PAUSE)
+        recordActionIfNeeded(null, Action.PAUSE)
         setIsPlay(false)
         setLooper(prevState => {
             const updatedLooper = [...prevState]
@@ -149,15 +153,31 @@ const LoopMachine = (props) => {
     const handleStartRecording = () => {
         setIsRecording(true)
         setCurrentSession([])
+        setStartRecordingState({
+            looper: [...looper],
+            pending: [...pending],
+            playing: [...playing],
+            isPlay: isPlay,
+            addPending: addPending
+        })
         setRecordingTimestamp(new Date())
     }
 
     const handleStopRecording = () => {
-        recordActionIfNeeded(null, null, Action.STOP)
+        recordActionIfNeeded(null, Action.STOP)
         setIsRecording(false)
     }
 
+    const updateStartRecordingState = () => {
+        setLooper([...startRecordingState.looper])
+        setPending([...startRecordingState.pending])
+        setPlaying([...startRecordingState.playing])
+        setIsPlay(startRecordingState.isPlay)
+        setAddPending(startRecordingState.addPending)
+    }
+
     const handlePlaySession = () => {
+        updateStartRecordingState()
         currentSession.forEach(record => {
             if (record.pad !== null) {
                 setTimeout(() => {
@@ -207,7 +227,7 @@ const LoopMachine = (props) => {
                     <ControlButton color='#40A6B8' handleClick={handleStartRecording} icon={record} />
                 }
 
-                {shouldShowPlaySession &&  <ControlButton color='#EE7614' handleClick={handlePlaySession} text={'Play Session'} />}
+                {shouldShowPlaySession && <ControlButton color='#EE7614' handleClick={handlePlaySession} text={'Play Session'} />}
             </div>
             <div className={classes.pads}>
                 {SAMPLES.map((sample, index) => {
